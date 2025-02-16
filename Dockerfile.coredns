@@ -1,0 +1,33 @@
+FROM golang:1.22 as builder
+
+WORKDIR /src
+
+# Clone CoreDNS
+RUN git clone https://github.com/coredns/coredns .
+
+# Create plugin directory
+RUN mkdir -p /src/plugin/upstashternal
+
+# Copy your plugin code
+COPY pkg/coredns/ /src/plugin/upstashternal/
+
+# Copy plugin.cfg
+COPY plugin.cfg .
+
+# Initialize plugin module
+RUN cd /src/plugin/upstashternal && \
+    go mod init github.com/coredns/coredns/plugin/upstashternal && \
+    go mod tidy
+
+# Build CoreDNS
+RUN go mod edit -go=1.22 && \
+    go mod edit -replace github.com/coredns/coredns/plugin/upstashternal=/src/plugin/upstashternal && \
+    go get -d ./... && \
+    go generate && \
+    go mod tidy && \
+    CGO_ENABLED=0 go build -o coredns
+
+# Final stage
+FROM gcr.io/distroless/base-debian11
+COPY --from=builder /src/coredns /coredns
+ENTRYPOINT ["/coredns"] 

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: upstashternal-coredns
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: upstashternal-coredns
+  template:
+    metadata:
+      labels:
+        app: upstashternal-coredns
+    spec:
+      containers:
+      - name: coredns
+        image: upstashternal-coredns:latest
+        imagePullPolicy: IfNotPresent
+        args: ["-conf", "/etc/coredns/Corefile"]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/coredns
+        ports:
+        - containerPort: 53
+          name: dns
+          protocol: UDP
+        - containerPort: 53
+          name: dns-tcp
+          protocol: TCP
+        env:
+        - name: REDIS_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: upstashternal-dns-config
+              key: redis-addr
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: upstashternal-dns
+              key: redis-password
+      volumes:
+      - name: config-volume
+        configMap:
+          name: upstashternal-coredns 

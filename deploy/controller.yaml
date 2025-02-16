@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: upstashternal-dns
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: upstashternal-dns
+  template:
+    metadata:
+      labels:
+        app: upstashternal-dns
+    spec:
+      serviceAccountName: upstashternal-dns
+      containers:
+      - name: controller
+        image: upstashternal-dns-controller:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REDIS_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: upstashternal-dns-config
+              key: redis-addr
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: upstashternal-dns
+              key: redis-password
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi 
